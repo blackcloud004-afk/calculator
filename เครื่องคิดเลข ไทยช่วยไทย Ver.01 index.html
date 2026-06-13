@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <!-- บังคับไม่ให้ Zoom เพื่อรักษา Layout บนมือถือ -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>เครื่องคิดเลข ไทยช่วยไทย (Mobile Edition)</title>
+    <!-- โหลด Tailwind CSS ผ่าน CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- โหลด Google Fonts: Prompt -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Prompt', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: pan-x pan-y; /* ป้องกันการ double-tap zoom บน iOS */
+        }
+        /* ซ่อนลูกศรใน input */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+        /* รองรับพื้นที่ปลอดภัยบนมือถือ */
+        .pt-safe { padding-top: max(env(safe-area-inset-top), 1rem); }
+        .pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 0.5rem); }
+        
+        /* ซ่อน Scrollbar ทั้งหมด */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* ปรับสเกลฐานนิดหน่อยสำหรับจอที่เตี้ยมากๆ เพื่อให้ตัวหนังสือยังดูใหญ่แต่ไม่ล้น */
+        @media (max-height: 680px) {
+            html { font-size: 14px; }
+            input[type=number] { font-size: 20px !important; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen overflow-hidden">
+
+    <div class="bg-gray-50 w-full max-w-md h-[100dvh] sm:h-[95vh] sm:rounded-[2.5rem] sm:shadow-2xl flex flex-col relative overflow-hidden">
+        
+        <!-- Header (Fixed) -->
+        <div class="bg-blue-600 pt-safe pb-3 px-4 text-white z-10 shadow-md flex justify-between items-center sm:pt-4 shrink-0 rounded-b-xl">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight leading-tight">ไทยช่วยไทย</h1>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="helpBtn" class="bg-blue-700 hover:bg-blue-800 text-white font-bold w-10 h-10 rounded-xl transition duration-200 active:scale-95 flex items-center justify-center shadow-sm" title="วิธีใช้งาน">
+                    <span class="text-xl">❓</span>
+                </button>
+                <button id="clearBtn" class="bg-blue-700 hover:bg-blue-800 text-white text-sm font-bold py-2 px-3 rounded-xl transition duration-200 active:scale-95 flex items-center gap-1 shadow-sm">
+                    <span>🔄</span> เริ่มใหม่
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content Area (ใช้ Flex 1 และ Justify เพื่อกระจายช่องว่างอัตโนมัติ) -->
+        <div class="flex-1 overflow-y-auto no-scrollbar p-3 flex flex-col justify-around gap-2">
+            
+            <!-- ================= PAGE 1: คำนวณและหักสิทธิ ================= -->
+            <div id="pageFlow" class="flex flex-col justify-between h-full animate-fade-in gap-3">
+                
+                <!-- Quota Display (ยอดตั้งต้น เล็กลงเป็นแถบสถานะ) -->
+                <div class="bg-blue-50 border border-blue-100 py-3 px-4 rounded-2xl shadow-sm shrink-0 flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <div class="bg-white w-8 h-8 rounded-full flex items-center justify-center shadow-sm">
+                            <span class="text-lg leading-none">💳</span>
+                        </div>
+                        <h2 class="text-sm font-bold text-gray-700">สิทธิคงเหลือปัจจุบัน</h2>
+                    </div>
+                    <div class="text-2xl font-extrabold text-blue-600 leading-none">
+                        <span id="currentQuotaDisplay">200.00</span><span class="text-base font-bold text-blue-400 ml-1">฿</span>
+                    </div>
+                </div>
+
+                <!-- Input Section (ช่องกรอกใหญ่ๆ) -->
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 shrink-0">
+                    <label for="flowTotalInput" class="block text-base font-bold text-gray-800 mb-2">ระบุยอดซื้อบิลนี้ (บาท)</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <span class="text-blue-600 font-extrabold text-2xl">฿</span>
+                        </div>
+                        <input type="number" id="flowTotalInput" placeholder="0.00" 
+                            class="w-full pl-12 pr-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition duration-200 text-3xl font-bold text-gray-800 placeholder-gray-300">
+                    </div>
+                </div>
+
+                <!-- กล่องแสดงผลลัพธ์ (สีตัดกันชัดเจน) -->
+                <div class="grid grid-cols-2 gap-3 shrink-0">
+                    <div class="bg-green-50 border-2 border-green-200 p-3 rounded-2xl flex flex-col justify-center items-center text-center shadow-sm">
+                        <span class="text-sm font-bold text-green-700 mb-1">รัฐช่วย (60%)</span>
+                        <span id="flowGovResult" class="text-3xl font-extrabold text-green-600">0.00</span>
+                    </div>
+
+                    <div class="bg-blue-600 p-3 rounded-2xl flex flex-col justify-center items-center text-center shadow-md shadow-blue-300">
+                        <span class="text-sm font-bold text-blue-100 mb-1">คุณจ่าย (40%)</span>
+                        <span id="flowUserResult" class="text-4xl font-extrabold text-white">0.00</span>
+                    </div>
+                </div>
+
+                <!-- Projection Box (สิทธิที่ใช้ได้ ใหญ่และชัดเจนสุดๆ) -->
+                <div class="bg-white border-[3px] border-green-400 p-4 rounded-2xl shadow-lg shrink-0 flex flex-col justify-center items-center text-center relative">
+                    <div class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold mb-2 flex items-center gap-1.5 shadow-sm">
+                        <span>🎯</span> ยอดซื้อเพื่อให้สิทธิหมดพอดี
+                    </div>
+                    <span class="text-base font-bold text-gray-800 mb-1">สิทธิคงเหลือที่ใช้ได้</span>
+                    <div class="text-[3.5rem] font-black text-green-600 leading-none tracking-tighter drop-shadow-sm my-1">
+                        <span id="flowTarget">333.33</span><span class="text-3xl font-bold text-green-500 ml-1">฿</span>
+                    </div>
+                </div>
+
+                <!-- Save Button (ปุ่มใหญ่ กดง่าย) -->
+                <button id="flowSaveBtn" disabled class="w-full py-4 bg-gray-300 text-gray-500 text-lg font-bold rounded-2xl transition-all duration-200 flex justify-center items-center gap-2 shrink-0 cursor-not-allowed">
+                    กรุณาระบุยอดเพื่อคำนวณ
+                </button>
+            </div>
+
+            <!-- ================= PAGE 2: คำนวณสิทธิกำหนดเอง (Manual) ================= -->
+            <div id="pageManual" class="hidden h-full flex-col justify-center gap-4 animate-fade-in">
+                
+                <div class="bg-yellow-50 p-5 rounded-3xl border-2 border-yellow-200 shadow-sm shrink-0">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-2xl">💡</span>
+                        <h2 class="text-lg font-bold text-yellow-800">คำนวณสิทธิเอง (Manual)</h2>
+                    </div>
+                    <p class="text-sm text-yellow-700 mb-5 font-medium">ระบุ "ยอดสิทธิที่เหลือ" ในแอปเป๋าตัง เพื่อดูว่าต้องซื้อของมูลค่ากี่บาทถึงจะหมดพอดี</p>
+
+                    <div>
+                        <label for="remainingInput" class="block text-base font-bold text-gray-800 mb-2">สิทธิที่รัฐช่วยจ่ายเหลืออยู่</label>
+                        <div class="relative mb-6">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <span class="text-yellow-600 font-extrabold text-2xl">฿</span>
+                            </div>
+                            <input type="number" id="remainingInput" placeholder="เช่น 81.20" 
+                                class="w-full pl-12 pr-4 py-4 bg-white border-2 border-yellow-300 rounded-2xl focus:outline-none focus:ring-4 focus:ring-yellow-100 transition duration-200 text-3xl font-bold text-gray-800 placeholder-gray-300 shadow-sm text-center">
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-5 rounded-2xl border-2 border-yellow-100 shadow-sm space-y-4">
+                        <div class="text-center pb-4 border-b border-gray-100">
+                            <span class="block text-sm font-bold text-gray-500 mb-1">เพื่อให้หมดสิทธิพอดี ต้องซื้อสินค้ายอดรวม</span>
+                            <span class="text-4xl font-extrabold text-gray-800"><span id="suggestedTotal">0.00</span> ฿</span>
+                        </div>
+                        <div class="text-center pt-2">
+                            <span class="block text-sm font-bold text-gray-500 mb-1">ส่วนที่คุณต้องจ่ายเพิ่ม (40%)</span>
+                            <span class="text-3xl font-extrabold text-blue-600"><span id="suggestedUserPay">0.00</span> ฿</span>
+                        </div>
+                    </div>
+                </div>
+            </div> <!-- ปิด Page 2 -->
+
+        </div> <!-- สิ้นสุด Content Area -->
+
+        <!-- ================= แบนเนอร์ข้อความ ================= -->
+        <div class="px-3 pb-2 z-10 shrink-0">
+            <div class="bg-gradient-to-r from-blue-600 to-blue-500 py-2.5 px-3 rounded-2xl shadow-sm flex items-center justify-center text-center">
+                <span class="block text-yellow-200 font-bold text-xs tracking-wide">✨ แจกฟรี ห้ามซื้อขาย และ ฝากแชร์กันเยอะๆนะจ้ะ</span>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation Bar -->
+        <nav class="bg-white border-t border-gray-200 flex justify-between items-center w-full pb-safe pt-2 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] z-20 shrink-0 px-2">
+            <button id="navFlow" class="flex-1 pb-2 flex flex-col items-center justify-center text-blue-600 font-bold transition-all duration-200 border-r border-gray-100">
+                <span class="text-2xl mb-1 filter drop-shadow-sm">🧾</span>
+                <span class="text-[0.7rem] tracking-wide">หักสิทธิอัตโนมัติ</span>
+            </button>
+            <button id="navManual" class="flex-1 pb-2 flex flex-col items-center justify-center text-gray-400 hover:text-blue-500 font-bold transition-all duration-200">
+                <span class="text-2xl mb-1 grayscale opacity-60">💡</span>
+                <span class="text-[0.7rem] tracking-wide">คำนวณเอง</span>
+            </button>
+        </nav>
+
+        <!-- ================= Modal แนะนำวิธีใช้งาน ================= -->
+        <div id="helpModal" class="fixed inset-0 bg-black/60 z-[100] hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-300 opacity-0 pointer-events-none">
+            <div id="helpModalContent" class="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden transform scale-95 transition-transform duration-300 pointer-events-auto">
+                <div class="bg-blue-600 px-5 py-4 flex justify-between items-center text-white">
+                    <h2 class="font-bold text-xl flex items-center gap-2"><span>📖</span> วิธีการใช้งาน</h2>
+                    <button id="closeHelpBtn" class="text-white hover:text-blue-200 text-3xl leading-none font-bold p-1 active:scale-95 transition-transform">&times;</button>
+                </div>
+                <div class="p-5 space-y-6 max-h-[60vh] overflow-y-auto">
+                    <!-- แท็บ 1 -->
+                    <div class="flex items-start gap-4">
+                        <div class="bg-blue-50 w-12 h-12 rounded-full flex items-center justify-center shrink-0">
+                            <span class="text-2xl">🧾</span>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-800 text-base">หน้าหักสิทธิอัตโนมัติ</h3>
+                            <p class="text-sm text-gray-600 mt-1 leading-relaxed">แอปจะตั้งสิทธิให้ 200 บ./วัน พิมพ์ยอดซื้อเสร็จ กดปุ่ม <b>"บันทึกยอด"</b> สิทธิจะลดลงอัตโนมัติ แล้วไปใช้ร้านต่อไปได้เลย!</p>
+                        </div>
+                    </div>
+                    <!-- แท็บ 2 -->
+                    <div class="flex items-start gap-4">
+                        <div class="bg-yellow-50 w-12 h-12 rounded-full flex items-center justify-center shrink-0">
+                            <span class="text-2xl">💡</span>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-800 text-base">หน้าคำนวณเอง (Manual)</h3>
+                            <p class="text-sm text-gray-600 mt-1 leading-relaxed">หากคุณทราบว่ามีสิทธิเหลือเท่าไหร่ ให้นำมากรอกตรงนี้ แอปจะบอกว่า <b>ต้องซื้อของกี่บาท</b> ถึงจะใช้สิทธิหมดพอดีเป๊ะ</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 border-t border-gray-100 bg-gray-50/80">
+                    <button id="understandBtn" class="w-full py-4 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-lg font-bold rounded-xl shadow-md shadow-blue-200 transition duration-200">
+                        เข้าใจแล้ว
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // ================= ตัวแปร DOM =================
+            const currentQuotaDisplay = document.getElementById('currentQuotaDisplay');
+            const flowTotalInput = document.getElementById('flowTotalInput');
+            const flowGovResult = document.getElementById('flowGovResult');
+            const flowUserResult = document.getElementById('flowUserResult');
+            const flowTarget = document.getElementById('flowTarget');
+            const flowSaveBtn = document.getElementById('flowSaveBtn');
+
+            const remainingInput = document.getElementById('remainingInput');
+            const suggestedTotal = document.getElementById('suggestedTotal');
+            const suggestedUserPay = document.getElementById('suggestedUserPay');
+
+            const clearBtn = document.getElementById('clearBtn');
+            const helpBtn = document.getElementById('helpBtn');
+            const helpModal = document.getElementById('helpModal');
+            const helpModalContent = document.getElementById('helpModalContent');
+            const closeHelpBtn = document.getElementById('closeHelpBtn');
+            const understandBtn = document.getElementById('understandBtn');
+
+            const pages = [document.getElementById('pageFlow'), document.getElementById('pageManual')];
+            const navs = [document.getElementById('navFlow'), document.getElementById('navManual')];
+            let currentPageIndex = 0;
+
+            // ================= State Variables =================
+            const DAILY_CAP = 200;
+            let currentQuota = DAILY_CAP;
+
+            // ================= ฟังก์ชันจัดการ UI =================
+            const formatNumber = (num) => {
+                return num.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            };
+
+            const switchPage = (index) => {
+                currentPageIndex = index;
+                pages.forEach((page, i) => {
+                    if (i === index) {
+                        page.classList.remove('hidden');
+                        page.classList.add('flex');
+                        setTimeout(() => page.classList.remove('opacity-0'), 10);
+                    } else {
+                        page.classList.add('hidden', 'opacity-0');
+                        page.classList.remove('flex');
+                    }
+                });
+
+                navs.forEach((nav, i) => {
+                    const icon = nav.querySelector('span:first-child');
+                    if (i === index) {
+                        nav.classList.add('text-blue-600');
+                        nav.classList.remove('text-gray-400');
+                        icon.classList.remove('grayscale', 'opacity-60');
+                    } else {
+                        nav.classList.add('text-gray-400');
+                        nav.classList.remove('text-blue-600');
+                        icon.classList.add('grayscale', 'opacity-60');
+                    }
+                });
+
+                // Auto-focus เฉพาะบนจอใหญ่ เพื่อไม่ให้คีย์บอร์ดมือถือเด้งกวนใจตอนกดสลับแท็บ
+                if (window.innerWidth > 640) {
+                    if (index === 0) flowTotalInput.focus();
+                    if (index === 1) remainingInput.focus();
+                }
+            };
+
+            navs.forEach((nav, index) => nav.addEventListener('click', () => switchPage(index)));
+
+            // ================= Modal =================
+            const openHelpModal = () => {
+                helpModal.classList.remove('hidden');
+                setTimeout(() => {
+                    helpModal.classList.remove('opacity-0', 'pointer-events-none');
+                    helpModalContent.classList.remove('scale-95');
+                    helpModalContent.classList.add('scale-100');
+                }, 10);
+            };
+
+            const closeHelpModal = () => {
+                helpModal.classList.add('opacity-0', 'pointer-events-none');
+                helpModalContent.classList.remove('scale-100');
+                helpModalContent.classList.add('scale-95');
+                setTimeout(() => helpModal.classList.add('hidden'), 300);
+            };
+
+            helpBtn.addEventListener('click', openHelpModal);
+            closeHelpBtn.addEventListener('click', closeHelpModal);
+            understandBtn.addEventListener('click', closeHelpModal);
+            helpModal.addEventListener('click', (e) => { if (e.target === helpModal) closeHelpModal(); });
+
+            // ================= การคำนวณ =================
+            const calculateFlow = () => {
+                let total = parseFloat(flowTotalInput.value) || 0;
+                if (total < 0) total = 0;
+
+                let govPay = Math.min(total * 0.6, currentQuota);
+                let userPay = total - govPay;
+                let nextQuota = currentQuota - govPay;
+                let nextTarget = nextQuota / 0.6; 
+
+                flowGovResult.textContent = formatNumber(govPay);
+                flowUserResult.textContent = formatNumber(userPay);
+                flowTarget.textContent = formatNumber(nextTarget);
+
+                if (total > 0 && currentQuota > 0) {
+                    flowSaveBtn.disabled = false;
+                    flowSaveBtn.className = "w-full py-4 bg-blue-600 text-white text-lg font-bold rounded-2xl hover:bg-blue-700 shadow-md active:scale-[0.98] transition-all duration-200 flex justify-center items-center gap-2 shrink-0";
+                    flowSaveBtn.innerHTML = '<span>✅</span> บันทึกยอด & หักสิทธิบิลนี้';
+                } else if (currentQuota <= 0) {
+                    flowSaveBtn.disabled = true;
+                    flowSaveBtn.className = "w-full py-4 bg-gray-300 text-gray-500 text-lg font-bold rounded-2xl shrink-0 cursor-not-allowed";
+                    flowSaveBtn.innerHTML = '❌ สิทธิของวันนี้หมดแล้ว';
+                    flowTotalInput.disabled = true;
+                } else {
+                    flowSaveBtn.disabled = true;
+                    flowSaveBtn.className = "w-full py-4 bg-gray-300 text-gray-500 text-lg font-bold rounded-2xl shrink-0 cursor-not-allowed";
+                    flowSaveBtn.innerHTML = 'กรุณาระบุยอดเพื่อคำนวณ';
+                }
+            };
+
+            flowSaveBtn.addEventListener('click', () => {
+                let total = parseFloat(flowTotalInput.value) || 0;
+                if (total <= 0) return;
+                let govPay = Math.min(total * 0.6, currentQuota);
+                
+                currentQuota -= govPay;
+                if(currentQuota < 0) currentQuota = 0;
+
+                currentQuotaDisplay.textContent = formatNumber(currentQuota);
+                flowTotalInput.value = '';
+                calculateFlow();
+
+                // Flash Effect
+                const container = pages[0];
+                container.classList.add('opacity-50');
+                setTimeout(() => container.classList.remove('opacity-50'), 150);
+            });
+
+            const calculateManual = () => {
+                let remain = parseFloat(remainingInput.value) || 0;
+                if (remain < 0) remain = 0;
+                let targetTotal = remain / 0.6; 
+                let userPay = targetTotal - remain; 
+                suggestedTotal.textContent = formatNumber(targetTotal);
+                suggestedUserPay.textContent = formatNumber(userPay);
+            };
+
+            flowTotalInput.addEventListener('input', calculateFlow);
+            remainingInput.addEventListener('input', calculateManual);
+
+            clearBtn.addEventListener('click', () => {
+                pages[currentPageIndex].classList.add('opacity-50');
+                setTimeout(() => pages[currentPageIndex].classList.remove('opacity-50'), 150);
+
+                currentQuota = DAILY_CAP;
+                currentQuotaDisplay.textContent = formatNumber(currentQuota);
+                flowTotalInput.disabled = false;
+                flowTotalInput.value = '';
+                remainingInput.value = ''; 
+                
+                calculateFlow(); 
+                calculateManual(); 
+            });
+
+            // Initialize
+            calculateFlow();
+            calculateManual();
+        });
+    </script>
+</body>
+</html>
