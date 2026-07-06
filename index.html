@@ -39,7 +39,6 @@
         @media (max-height: 600px) { html { font-size: 11px; } }
     </style>
 </head>
-<!-- แก้ไข: เพิ่ม items-start เพื่อบังคับให้แอปชิดขอบบนสุดของหน้าจอมือถือเสมอ -->
 <body class="bg-gray-100 flex items-start sm:items-center justify-center min-h-screen overflow-hidden">
 
     <div class="bg-gray-50 w-full max-w-md h-[100dvh] sm:h-[95vh] sm:rounded-[2.5rem] sm:shadow-2xl flex flex-col relative overflow-hidden">
@@ -120,15 +119,15 @@
                 </button>
             </div>
 
-            <!-- ================= PAGE 2: คำนวณสิทธิกำหนดเอง (Manual) ================= -->
+            <!-- ================= PAGE 2: คำนวณสิทธิรัฐกำหนดเอง (Manual) ================= -->
             <div id="pageManual" class="hidden h-full flex-col justify-center gap-3 animate-fade-in">
                 
                 <div class="bg-yellow-50 p-5 rounded-3xl border-2 border-yellow-200 shadow-sm shrink-0">
                     <div class="flex items-center gap-2 mb-2">
                         <span class="text-2xl">💡</span>
-                        <h2 class="text-lg font-bold text-yellow-800">คำนวณสิทธิเอง (Manual)</h2>
+                        <h2 class="text-lg font-bold text-yellow-800">คำนวณสิทธิรัฐเอง (Manual)</h2>
                     </div>
-                    <p class="text-sm text-yellow-700 mb-5 font-medium">ระบุ "ยอดสิทธิที่เหลือ" ในแอปเป๋าตัง เพื่อดูว่าต้องซื้อของมูลค่ากี่บาทถึงจะหมดพอดี</p>
+                    <p class="text-sm text-yellow-700 mb-5 font-medium">ระบุ "ยอดสิทธิรัฐที่เหลือ" ในแอปเป๋าตัง เพื่อดูว่าต้องซื้อของมูลค่ากี่บาทถึงจะหมดพอดี</p>
 
                     <div>
                         <label for="remainingInput" class="block text-base font-bold text-gray-800 mb-2">สิทธิที่รัฐช่วยจ่ายเหลืออยู่</label>
@@ -154,6 +153,40 @@
                 </div>
             </div> <!-- ปิด Page 2 -->
 
+            <!-- ================= PAGE 3: คำนวณจากเงินที่มี (40%) ================= -->
+            <div id="pageUserMoney" class="hidden h-full flex-col justify-center gap-3 animate-fade-in">
+                
+                <div class="bg-purple-50 p-5 rounded-3xl border-2 border-purple-200 shadow-sm shrink-0">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-2xl">👛</span>
+                        <h2 class="text-lg font-bold text-purple-800">คำนวณจากเงินที่คุณมี</h2>
+                    </div>
+                    <p class="text-sm text-purple-700 mb-5 font-medium">ระบุ "เงินของคุณที่เหลือในกระเป๋า" เพื่อดูว่าจะสามารถซื้อของได้ยอดรวมสูงสุดกี่บาท</p>
+
+                    <div>
+                        <label for="userMoneyInput" class="block text-base font-bold text-gray-800 mb-2">เงินของคุณ (40%) ที่มีอยู่</label>
+                        <div class="relative mb-6">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <span class="text-purple-600 font-extrabold text-2xl">฿</span>
+                            </div>
+                            <input type="number" id="userMoneyInput" placeholder="เช่น 40" 
+                                class="w-full pl-12 pr-4 py-4 bg-white border-2 border-purple-300 rounded-2xl focus:outline-none focus:ring-4 focus:ring-purple-100 transition duration-200 text-3xl font-bold text-gray-800 placeholder-gray-300 shadow-sm text-center">
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-5 rounded-2xl border-2 border-purple-100 shadow-sm space-y-4">
+                        <div class="text-center pb-4 border-b border-gray-100">
+                            <span class="block text-sm font-bold text-gray-500 mb-1">สามารถซื้อสินค้ายอดรวมได้ถึง</span>
+                            <span class="text-4xl font-extrabold text-gray-800"><span id="maxTotalResult">0.00</span> ฿</span>
+                        </div>
+                        <div class="text-center pt-2">
+                            <span class="block text-sm font-bold text-gray-500 mb-1">รัฐจะช่วยสมทบให้ (60%)</span>
+                            <span class="text-3xl font-extrabold text-green-600"><span id="govHelpResult">0.00</span> ฿</span>
+                        </div>
+                    </div>
+                </div>
+            </div> <!-- ปิด Page 3 -->
+
         </div> <!-- สิ้นสุด Content Area -->
 
         <!-- ================= แบนเนอร์ข้อความ ================= -->
@@ -163,15 +196,19 @@
             </div>
         </div>
 
-        <!-- Bottom Navigation Bar -->
+        <!-- Bottom Navigation Bar (อัปเดตเป็น 3 เมนู) -->
         <nav class="bg-white border-t border-gray-200 flex justify-between items-center w-full pb-safe pt-2 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] z-20 shrink-0 px-2">
             <button id="navFlow" class="flex-1 pb-2 flex flex-col items-center justify-center text-blue-600 font-bold transition-all duration-200 border-r border-gray-100">
                 <span class="text-2xl mb-1 filter drop-shadow-sm">🧾</span>
-                <span class="text-[0.7rem] tracking-wide">หักสิทธิอัตโนมัติ</span>
+                <span class="text-[0.65rem] tracking-wide">หักสิทธิอัตโนมัติ</span>
             </button>
-            <button id="navManual" class="flex-1 pb-2 flex flex-col items-center justify-center text-gray-400 hover:text-blue-500 font-bold transition-all duration-200">
+            <button id="navManual" class="flex-1 pb-2 flex flex-col items-center justify-center text-gray-400 hover:text-blue-500 font-bold transition-all duration-200 border-r border-gray-100">
                 <span class="text-2xl mb-1 grayscale opacity-60">💡</span>
-                <span class="text-[0.7rem] tracking-wide">คำนวณเอง</span>
+                <span class="text-[0.65rem] tracking-wide">คำนวณสิทธิรัฐ</span>
+            </button>
+            <button id="navUserMoney" class="flex-1 pb-2 flex flex-col items-center justify-center text-gray-400 hover:text-purple-500 font-bold transition-all duration-200">
+                <span class="text-2xl mb-1 grayscale opacity-60">👛</span>
+                <span class="text-[0.65rem] tracking-wide">คำนวณจากเงินเรา</span>
             </button>
         </nav>
 
@@ -182,25 +219,35 @@
                     <h2 class="font-bold text-xl flex items-center gap-2"><span>📖</span> วิธีการใช้งาน</h2>
                     <button id="closeHelpBtn" class="text-white hover:text-blue-200 text-3xl leading-none font-bold p-1 active:scale-95 transition-transform">&times;</button>
                 </div>
-                <div class="p-5 space-y-6 max-h-[60vh] overflow-y-auto">
+                <div class="p-5 space-y-5 max-h-[60vh] overflow-y-auto">
                     <!-- แท็บ 1 -->
                     <div class="flex items-start gap-4">
-                        <div class="bg-blue-50 w-12 h-12 rounded-full flex items-center justify-center shrink-0">
-                            <span class="text-2xl">🧾</span>
+                        <div class="bg-blue-50 w-10 h-10 rounded-full flex items-center justify-center shrink-0">
+                            <span class="text-xl">🧾</span>
                         </div>
                         <div>
-                            <h3 class="font-bold text-gray-800 text-base">หน้าหักสิทธิอัตโนมัติ</h3>
-                            <p class="text-sm text-gray-600 mt-1 leading-relaxed">แอปจะตั้งสิทธิให้ 200 บ./วัน พิมพ์ยอดซื้อเสร็จ กดปุ่ม <b>"บันทึกยอด"</b> สิทธิจะลดลงอัตโนมัติ แล้วไปใช้ร้านต่อไปได้เลย!</p>
+                            <h3 class="font-bold text-gray-800 text-sm">หักสิทธิอัตโนมัติ</h3>
+                            <p class="text-xs text-gray-600 mt-1 leading-relaxed">พิมพ์ยอดซื้อเสร็จ กดปุ่ม <b>"บันทึกยอด"</b> สิทธิจะลดลงอัตโนมัติ แล้วไปใช้ร้านต่อไปได้เลย</p>
                         </div>
                     </div>
                     <!-- แท็บ 2 -->
                     <div class="flex items-start gap-4">
-                        <div class="bg-yellow-50 w-12 h-12 rounded-full flex items-center justify-center shrink-0">
-                            <span class="text-2xl">💡</span>
+                        <div class="bg-yellow-50 w-10 h-10 rounded-full flex items-center justify-center shrink-0">
+                            <span class="text-xl">💡</span>
                         </div>
                         <div>
-                            <h3 class="font-bold text-gray-800 text-base">หน้าคำนวณเอง (Manual)</h3>
-                            <p class="text-sm text-gray-600 mt-1 leading-relaxed">หากคุณทราบว่ามีสิทธิเหลือเท่าไหร่ ให้นำมากรอกตรงนี้ แอปจะบอกว่า <b>ต้องซื้อของกี่บาท</b> ถึงจะใช้สิทธิหมดพอดีเป๊ะ</p>
+                            <h3 class="font-bold text-gray-800 text-sm">คำนวณสิทธิรัฐเอง (Manual)</h3>
+                            <p class="text-xs text-gray-600 mt-1 leading-relaxed">กรอกสิทธิที่รัฐเหลือให้ แอปจะบอกว่า <b>ต้องซื้อของกี่บาท</b> ถึงจะใช้สิทธิของรัฐหมดพอดี</p>
+                        </div>
+                    </div>
+                    <!-- แท็บ 3 -->
+                    <div class="flex items-start gap-4">
+                        <div class="bg-purple-50 w-10 h-10 rounded-full flex items-center justify-center shrink-0">
+                            <span class="text-xl">👛</span>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-800 text-sm">คำนวณจากเงินเรา (40%)</h3>
+                            <p class="text-xs text-gray-600 mt-1 leading-relaxed">หากคุณมีเงินจำกัด ให้กรอกเงินที่คุณมี แอปจะบอกว่า <b>สามารถซื้อของได้รวมสูงสุดกี่บาท</b></p>
                         </div>
                     </div>
                 </div>
@@ -228,6 +275,10 @@
             const suggestedTotal = document.getElementById('suggestedTotal');
             const suggestedUserPay = document.getElementById('suggestedUserPay');
 
+            const userMoneyInput = document.getElementById('userMoneyInput');
+            const maxTotalResult = document.getElementById('maxTotalResult');
+            const govHelpResult = document.getElementById('govHelpResult');
+
             const clearBtn = document.getElementById('clearBtn');
             const helpBtn = document.getElementById('helpBtn');
             const helpModal = document.getElementById('helpModal');
@@ -235,8 +286,16 @@
             const closeHelpBtn = document.getElementById('closeHelpBtn');
             const understandBtn = document.getElementById('understandBtn');
 
-            const pages = [document.getElementById('pageFlow'), document.getElementById('pageManual')];
-            const navs = [document.getElementById('navFlow'), document.getElementById('navManual')];
+            const pages = [
+                document.getElementById('pageFlow'), 
+                document.getElementById('pageManual'),
+                document.getElementById('pageUserMoney')
+            ];
+            const navs = [
+                document.getElementById('navFlow'), 
+                document.getElementById('navManual'),
+                document.getElementById('navUserMoney')
+            ];
             let currentPageIndex = 0;
 
             // ================= State Variables =================
@@ -264,12 +323,17 @@
                 navs.forEach((nav, i) => {
                     const icon = nav.querySelector('span:first-child');
                     if (i === index) {
-                        nav.classList.add('text-blue-600');
-                        nav.classList.remove('text-gray-400');
+                        if (index === 2) { // สีพิเศษสำหรับหน้าเงินเรา
+                            nav.classList.add('text-purple-600');
+                            nav.classList.remove('text-gray-400');
+                        } else {
+                            nav.classList.add('text-blue-600');
+                            nav.classList.remove('text-gray-400');
+                        }
                         icon.classList.remove('grayscale', 'opacity-60');
                     } else {
                         nav.classList.add('text-gray-400');
-                        nav.classList.remove('text-blue-600');
+                        nav.classList.remove('text-blue-600', 'text-purple-600');
                         icon.classList.add('grayscale', 'opacity-60');
                     }
                 });
@@ -278,6 +342,7 @@
                 if (window.innerWidth > 640) {
                     if (index === 0) flowTotalInput.focus();
                     if (index === 1) remainingInput.focus();
+                    if (index === 2) userMoneyInput.focus();
                 }
             };
 
@@ -362,8 +427,22 @@
                 suggestedUserPay.textContent = formatNumber(userPay);
             };
 
+            const calculateUserMoney = () => {
+                let userMoney = parseFloat(userMoneyInput.value) || 0;
+                if (userMoney < 0) userMoney = 0;
+                
+                // คำนวณกลับไปหายอดเต็ม (หารด้วย 40%)
+                let targetTotal = userMoney / 0.4; 
+                // ส่วนที่รัฐจะช่วยสมทบให้คือยอดเต็ม หักเงินที่เราจ่ายไป
+                let govHelp = targetTotal - userMoney; 
+                
+                maxTotalResult.textContent = formatNumber(targetTotal);
+                govHelpResult.textContent = formatNumber(govHelp);
+            };
+
             flowTotalInput.addEventListener('input', calculateFlow);
             remainingInput.addEventListener('input', calculateManual);
+            userMoneyInput.addEventListener('input', calculateUserMoney);
 
             clearBtn.addEventListener('click', () => {
                 pages[currentPageIndex].classList.add('opacity-50');
@@ -374,14 +453,17 @@
                 flowTotalInput.disabled = false;
                 flowTotalInput.value = '';
                 remainingInput.value = ''; 
+                userMoneyInput.value = ''; 
                 
                 calculateFlow(); 
                 calculateManual(); 
+                calculateUserMoney();
             });
 
             // Initialize
             calculateFlow();
             calculateManual();
+            calculateUserMoney();
         });
     </script>
 </body>
